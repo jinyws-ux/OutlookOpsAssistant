@@ -13,6 +13,13 @@ namespace OutlookOpsAssistant
         private TextBox latestContentTextBox;
         private Label analysisStatusLabel;
         private Button reanalyzeButton;
+        private Button enterSelectedCaseButton;
+
+        private TableLayoutPanel mainWorkflowLayout;
+        private int fragmentStartRow = -1;
+        private int fragmentEndRow = -1;
+        private int caseTemplateStartRow = -1;
+        private int caseTemplateEndRow = -1;
 
         private MailContext currentMailContext;
         private IAgentService agentService;
@@ -26,7 +33,8 @@ namespace OutlookOpsAssistant
 
         /// <summary>
         /// 由 InspectorSession 传入当前邮件上下文，
-        /// 并使用 Mock Agent 执行 Case 推荐和参数预填。
+        /// 并使用 Mock Agent 执行 Case 推荐。
+        /// 用户确认 Case 后，才执行该 Case 的参数提取。
         /// </summary>
         public void LoadMailContext(
             MailContext context)
@@ -95,33 +103,10 @@ namespace OutlookOpsAssistant
                         4)
                 };
 
-            Label latestTitleLabel =
-                new Label
-                {
-                    Text = "识别出的最新邮件内容",
-                    AutoSize = true,
-                    Dock = DockStyle.Top,
-                    Margin = new Padding(
-                        0,
-                        6,
-                        0,
-                        3)
-                };
-
-            latestContentTextBox =
-                new TextBox
-                {
-                    Dock = DockStyle.Top,
-                    Height = 100,
-                    Multiline = true,
-                    ReadOnly = true,
-                    ScrollBars = ScrollBars.Vertical
-                };
-
             Label suggestionTitleLabel =
                 new Label
                 {
-                    Text = "候选 Case（匹配度排序）",
+                    Text = "请选择最符合的 Case",
                     AutoSize = true,
                     Dock = DockStyle.Top,
                     Margin = new Padding(
@@ -135,12 +120,26 @@ namespace OutlookOpsAssistant
                 new ListBox
                 {
                     Dock = DockStyle.Top,
-                    Height = 82,
+                    Height = 105,
                     IntegralHeight = false
                 };
 
             suggestionListBox.SelectedIndexChanged +=
                 SuggestionListBox_SelectedIndexChanged;
+
+            suggestionListBox.DoubleClick +=
+                SuggestionListBox_DoubleClick;
+
+            enterSelectedCaseButton =
+                new Button
+                {
+                    Text = "进入所选 Case",
+                    AutoSize = true,
+                    Enabled = false
+                };
+
+            enterSelectedCaseButton.Click +=
+                EnterSelectedCaseButton_Click;
 
             reanalyzeButton =
                 new Button
@@ -183,9 +182,34 @@ namespace OutlookOpsAssistant
                 };
 
             actionPanel.Controls.Add(
+                enterSelectedCaseButton);
+            actionPanel.Controls.Add(
                 reanalyzeButton);
             actionPanel.Controls.Add(
                 analysisStatusLabel);
+
+            Label latestTitleLabel =
+                new Label
+                {
+                    Text = "识别出的最新邮件内容",
+                    AutoSize = true,
+                    Dock = DockStyle.Top,
+                    Margin = new Padding(
+                        0,
+                        10,
+                        0,
+                        3)
+                };
+
+            latestContentTextBox =
+                new TextBox
+                {
+                    Dock = DockStyle.Top,
+                    Height = 85,
+                    Multiline = true,
+                    ReadOnly = true,
+                    ScrollBars = ScrollBars.Vertical
+                };
 
             TableLayoutPanel layout =
                 new TableLayoutPanel
@@ -201,11 +225,11 @@ namespace OutlookOpsAssistant
                     100));
 
             AddAnalysisRow(layout, titleLabel);
-            AddAnalysisRow(layout, latestTitleLabel);
-            AddAnalysisRow(layout, latestContentTextBox);
             AddAnalysisRow(layout, suggestionTitleLabel);
             AddAnalysisRow(layout, suggestionListBox);
             AddAnalysisRow(layout, actionPanel);
+            AddAnalysisRow(layout, latestTitleLabel);
+            AddAnalysisRow(layout, latestContentTextBox);
 
             analysisPanel.Controls.Add(layout);
 
@@ -213,6 +237,80 @@ namespace OutlookOpsAssistant
             Controls.SetChildIndex(
                 analysisPanel,
                 0);
+
+            ConfigureWorkflowRows();
+        }
+
+        private void ConfigureWorkflowRows()
+        {
+            mainWorkflowLayout =
+                caseComboBox.Parent as TableLayoutPanel;
+
+            if (mainWorkflowLayout == null)
+            {
+                return;
+            }
+
+            int fragmentRow =
+                mainWorkflowLayout.GetRow(
+                    fragmentListBox);
+
+            fragmentStartRow =
+                Math.Max(0, fragmentRow - 1);
+            fragmentEndRow =
+                fragmentRow + 1;
+
+            int caseComboRow =
+                mainWorkflowLayout.GetRow(
+                    caseComboBox);
+
+            caseTemplateStartRow =
+                Math.Max(0, caseComboRow - 1);
+            caseTemplateEndRow =
+                mainWorkflowLayout.GetRow(
+                    previewTextBox);
+
+            SetRowsVisible(
+                fragmentStartRow,
+                fragmentEndRow,
+                false);
+
+            SetCaseTemplateVisible(false);
+        }
+
+        private void SetCaseTemplateVisible(
+            bool visible)
+        {
+            SetRowsVisible(
+                caseTemplateStartRow,
+                caseTemplateEndRow,
+                visible);
+        }
+
+        private void SetRowsVisible(
+            int startRow,
+            int endRow,
+            bool visible)
+        {
+            if (mainWorkflowLayout == null ||
+                startRow < 0 ||
+                endRow < startRow)
+            {
+                return;
+            }
+
+            foreach (Control control
+                     in mainWorkflowLayout.Controls)
+            {
+                int row =
+                    mainWorkflowLayout.GetRow(control);
+
+                if (row >= startRow &&
+                    row <= endRow)
+                {
+                    control.Visible = visible;
+                }
+            }
         }
 
         private static void AddAnalysisRow(
@@ -235,6 +333,9 @@ namespace OutlookOpsAssistant
         private void AnalyzeCurrentMail()
         {
             suggestionListBox.Items.Clear();
+            suggestionListBox.SelectedIndex = -1;
+            enterSelectedCaseButton.Enabled = false;
+            SetCaseTemplateVisible(false);
 
             if (currentMailContext == null)
             {
@@ -261,17 +362,10 @@ namespace OutlookOpsAssistant
                         suggestion);
                 }
 
-                if (suggestionListBox.Items.Count > 0)
-                {
-                    suggestionListBox.SelectedIndex = 0;
-                    analysisStatusLabel.Text =
-                        "分析完成，请确认候选 Case";
-                }
-                else
-                {
-                    analysisStatusLabel.Text =
-                        "没有可用的 Case 配置";
-                }
+                analysisStatusLabel.Text =
+                    suggestionListBox.Items.Count > 0
+                        ? "分析完成，请先选择一个候选 Case"
+                        : "没有可用的 Case 配置";
             }
             catch (Exception ex)
             {
@@ -292,6 +386,40 @@ namespace OutlookOpsAssistant
                 suggestionListBox.SelectedItem
                     as CaseSuggestion;
 
+            enterSelectedCaseButton.Enabled =
+                suggestion != null;
+
+            if (suggestion == null)
+            {
+                analysisStatusLabel.Text =
+                    "请选择一个候选 Case";
+                return;
+            }
+
+            analysisStatusLabel.Text =
+                suggestion.Reason;
+        }
+
+        private void SuggestionListBox_DoubleClick(
+            object sender,
+            EventArgs e)
+        {
+            EnterSelectedCase();
+        }
+
+        private void EnterSelectedCaseButton_Click(
+            object sender,
+            EventArgs e)
+        {
+            EnterSelectedCase();
+        }
+
+        private void EnterSelectedCase()
+        {
+            CaseSuggestion suggestion =
+                suggestionListBox.SelectedItem
+                    as CaseSuggestion;
+
             if (suggestion == null)
             {
                 return;
@@ -307,18 +435,53 @@ namespace OutlookOpsAssistant
 
             if (selectedCase == null)
             {
+                analysisStatusLabel.Text =
+                    "未找到对应的 Case 配置";
                 return;
             }
 
-            caseComboBox.SelectedItem =
-                selectedCase;
+            enterSelectedCaseButton.Enabled = false;
+            analysisStatusLabel.Text =
+                "正在提取 Case 参数...";
 
-            ApplyExtractedParameters(
-                suggestion.ExtractedParameters);
+            try
+            {
+                caseComboBox.SelectedItem =
+                    selectedCase;
 
-            resultLabel.Text =
-                "Mock Agent：" +
-                suggestion.Reason;
+                // 即使前后选择的是同一个 Case，也重新生成表单，
+                // 避免保留上一封邮件的字段值。
+                RenderSelectedCase();
+
+                IDictionary<string, string> extracted =
+                    agentService.ExtractParameters(
+                        currentMailContext,
+                        selectedCase);
+
+                ApplyExtractedParameters(extracted);
+                SetCaseTemplateVisible(true);
+
+                resultLabel.Text =
+                    "Mock Agent：" +
+                    suggestion.Reason;
+
+                analysisStatusLabel.Text =
+                    "已进入 " +
+                    selectedCase.Name +
+                    "，请确认自动填充内容";
+
+                ScrollControlIntoView(
+                    caseComboBox);
+            }
+            catch (Exception ex)
+            {
+                analysisStatusLabel.Text =
+                    "参数提取失败：" + ex.Message;
+            }
+            finally
+            {
+                enterSelectedCaseButton.Enabled = true;
+            }
         }
 
         private void ApplyExtractedParameters(
