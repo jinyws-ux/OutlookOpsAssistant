@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Office.Tools;
 using Office = Microsoft.Office.Core;
 using Outlook = Microsoft.Office.Interop.Outlook;
@@ -10,6 +10,7 @@ namespace OutlookOpsAssistant
         private readonly Outlook.Inspector inspector;
         private readonly Outlook.InspectorEvents_Event inspectorEvents;
         private readonly OpsTaskPaneControl paneControl;
+        private readonly OutlookMailContextReader mailContextReader;
 
         private CustomTaskPane taskPane;
         private bool disposed;
@@ -21,6 +22,9 @@ namespace OutlookOpsAssistant
                 inspector ??
                 throw new ArgumentNullException(
                     nameof(inspector));
+
+            mailContextReader =
+                new OutlookMailContextReader();
 
             paneControl =
                 new OpsTaskPaneControl();
@@ -35,7 +39,7 @@ namespace OutlookOpsAssistant
                 Office.MsoCTPDockPosition
                     .msoCTPDockPositionRight;
 
-            taskPane.Width = 420;
+            taskPane.Width = 440;
             taskPane.Visible = false;
 
             inspectorEvents =
@@ -45,25 +49,45 @@ namespace OutlookOpsAssistant
                 Inspector_Close;
         }
 
+        /// <summary>
+        /// 读取当前完整邮件并打开右侧分析窗格。
+        /// </summary>
+        public void OpenAndAnalyze(
+            Outlook.MailItem mailItem)
+        {
+            EnsureNotDisposed();
+
+            MailContext context =
+                mailContextReader.Read(mailItem);
+
+            paneControl.LoadMailContext(context);
+            taskPane.Visible = true;
+        }
+
+        /// <summary>
+        /// 保留原有的选中文字补充能力，后续作为次要入口使用。
+        /// </summary>
         public void AddFragment(
             Outlook.MailItem mailItem,
-            string senderAddress,
             string selectedText)
+        {
+            EnsureNotDisposed();
+
+            MailContext context =
+                mailContextReader.Read(mailItem);
+
+            paneControl.LoadMailContext(context);
+            paneControl.AddFragment(selectedText);
+            taskPane.Visible = true;
+        }
+
+        private void EnsureNotDisposed()
         {
             if (disposed)
             {
                 throw new ObjectDisposedException(
                     nameof(InspectorSession));
             }
-
-            paneControl.SetMailInfo(
-                mailItem.Subject,
-                senderAddress);
-
-            paneControl.AddFragment(
-                selectedText);
-
-            taskPane.Visible = true;
         }
 
         private void Inspector_Close()
