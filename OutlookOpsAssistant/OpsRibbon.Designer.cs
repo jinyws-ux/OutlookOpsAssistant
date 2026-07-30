@@ -1,4 +1,4 @@
-﻿namespace OutlookOpsAssistant
+namespace OutlookOpsAssistant
 {
     partial class OpsRibbon : Microsoft.Office.Tools.Ribbon.RibbonBase
     {
@@ -13,7 +13,7 @@
             InitializeComponent();
         }
 
-        /// <summary> 
+        /// <summary>
         /// 清理所有正在使用的资源。
         /// </summary>
         /// <param name="disposing">如果应释放托管资源，为 true；否则为 false。</param>
@@ -36,34 +36,34 @@
         {
             this.tab1 = this.Factory.CreateRibbonTab();
             this.group1 = this.Factory.CreateRibbonGroup();
-            this.btnReadSelection = this.Factory.CreateRibbonButton();
+            this.btnAnalyzeMail = this.Factory.CreateRibbonButton();
             this.tab1.SuspendLayout();
             this.group1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // tab1
-            // 
+            //
             this.tab1.ControlId.ControlIdType = Microsoft.Office.Tools.Ribbon.RibbonControlIdType.Office;
             this.tab1.Groups.Add(this.group1);
             this.tab1.Label = "TabAddIns";
             this.tab1.Name = "tab1";
-            // 
+            //
             // group1
-            // 
-            this.group1.Items.Add(this.btnReadSelection);
+            //
+            this.group1.Items.Add(this.btnAnalyzeMail);
             this.group1.Label = "运维自动化";
             this.group1.Name = "group1";
-            // 
-            // btnReadSelection
-            // 
-            this.btnReadSelection.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
-            this.btnReadSelection.Label = "读取选中内容";
-            this.btnReadSelection.Name = "btnReadSelection";
-            this.btnReadSelection.ShowImage = true;
-            this.btnReadSelection.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.button1_Click);
-            // 
+            //
+            // btnAnalyzeMail
+            //
+            this.btnAnalyzeMail.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
+            this.btnAnalyzeMail.Label = "分析当前邮件";
+            this.btnAnalyzeMail.Name = "btnAnalyzeMail";
+            this.btnAnalyzeMail.ShowImage = true;
+            this.btnAnalyzeMail.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.AnalyzeMailButton_Click);
+            //
             // OpsRibbon
-            // 
+            //
             this.Name = "OpsRibbon";
             this.RibbonType = "Microsoft.Outlook.Mail.Read";
             this.Tabs.Add(this.tab1);
@@ -73,14 +73,13 @@
             this.group1.ResumeLayout(false);
             this.group1.PerformLayout();
             this.ResumeLayout(false);
-
         }
 
         #endregion
 
         internal Microsoft.Office.Tools.Ribbon.RibbonTab tab1;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group1;
-        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnReadSelection;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAnalyzeMail;
     }
 
     partial class ThisRibbonCollection
