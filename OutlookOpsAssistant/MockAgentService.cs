@@ -12,9 +12,15 @@ namespace OutlookOpsAssistant
     /// </summary>
     public sealed class MockAgentService : IAgentService
     {
-        private static readonly Regex SevenCharacterCodeRegex =
+        private static readonly Regex LabeledVinRegex =
             new Regex(
-                @"(?<![A-Z0-9])[A-Z0-9]{7}(?![A-Z0-9])",
+                @"(?:SHORT[\s_-]*VIN|VIN(?:号|号码)?)\s*[:：=]?\s*([MS1][A-Z0-9]{6})(?![A-Z0-9])",
+                RegexOptions.IgnoreCase |
+                RegexOptions.Compiled);
+
+        private static readonly Regex VinTokenRegex =
+            new Regex(
+                @"(?<![A-Z0-9])([MS1][A-Z0-9]{6})(?![A-Z0-9])",
                 RegexOptions.IgnoreCase |
                 RegexOptions.Compiled);
 
@@ -91,6 +97,9 @@ namespace OutlookOpsAssistant
             string searchText =
                 BuildSearchText(context);
 
+            IList<string> vins =
+                FindVins(context);
+
             foreach (CaseFieldDefinition field
                      in caseDefinition.Fields)
             {
@@ -107,11 +116,10 @@ namespace OutlookOpsAssistant
                         "vin",
                         StringComparison.OrdinalIgnoreCase))
                 {
-                    string vin = FindVin(searchText);
-
-                    if (!string.IsNullOrWhiteSpace(vin))
+                    if (vins.Count > 0)
                     {
-                        values[key] = vin;
+                        values[key] =
+                            string.Join(",", vins);
                     }
 
                     continue;
@@ -123,6 +131,12 @@ namespace OutlookOpsAssistant
                         StringComparison.OrdinalIgnoreCase))
                 {
                     string site = FindSite(searchText);
+
+                    if (string.IsNullOrWhiteSpace(site) &&
+                        vins.Count > 0)
+                    {
+                        site = FindSiteFromVin(vins[0]);
+                    }
 
                     if (!string.IsNullOrWhiteSpace(site))
                     {
@@ -182,21 +196,18 @@ namespace OutlookOpsAssistant
                             "vin",
                             StringComparison.OrdinalIgnoreCase));
 
-            string vin = FindVin(searchText);
+            IList<string> vins =
+                FindVins(context);
 
-            if (needsVin &&
-                !string.IsNullOrWhiteSpace(vin))
+            if (needsVin && vins.Count > 0)
             {
                 score += 0.25D;
-                reasons.Add("识别到 VIN " + vin);
+                reasons.Add(
+                    "识别到 VIN " +
+                    string.Join(",", vins));
             }
 
             score = Math.Min(score, 0.99D);
-
-            IDictionary<string, string> extracted =
-                ExtractParameters(
-                    context,
-                    caseDefinition);
 
             return new CaseSuggestion
             {
@@ -205,11 +216,7 @@ namespace OutlookOpsAssistant
                 Score = score,
                 Reason = reasons.Count == 0
                     ? "暂未命中明确关键词"
-                    : string.Join("；", reasons),
-                ExtractedParameters =
-                    new Dictionary<string, string>(
-                        extracted,
-                        StringComparer.OrdinalIgnoreCase)
+                    : string.Join("；", reasons)
             };
         }
 
@@ -277,21 +284,63 @@ namespace OutlookOpsAssistant
                 : latest;
         }
 
-        private static string FindVin(
-            string text)
+        private static IList<string> FindVins(
+            MailContext context)
+        {
+            List<string> result =
+                new List<string>();
+
+            IEnumerable<string> priorityTexts =
+                new[]
+                {
+                    context.LatestContent,
+                    context.Subject,
+                    context.FullBody
+                };
+
+            foreach (string text in priorityTexts)
+            {
+                AddVinMatches(
+                    text,
+                    LabeledVinRegex,
+                    result);
+            }
+
+            foreach (string text in priorityTexts)
+            {
+                AddVinMatches(
+                    text,
+                    VinTokenRegex,
+                    result);
+            }
+
+            return result;
+        }
+
+        private static void AddVinMatches(
+            string text,
+            Regex regex,
+            ICollection<string> result)
         {
             if (string.IsNullOrWhiteSpace(text))
             {
-                return string.Empty;
+                return;
             }
 
             MatchCollection matches =
-                SevenCharacterCodeRegex.Matches(text);
+                regex.Matches(text);
 
             foreach (Match match in matches)
             {
                 string value =
-                    match.Value.ToUpperInvariant();
+                    match.Groups.Count > 1
+                        ? match.Groups[1].Value
+                        : match.Value;
+
+                value =
+                    (value ?? string.Empty)
+                    .Trim()
+                    .ToUpperInvariant();
 
                 bool containsLetter =
                     value.Any(char.IsLetter);
@@ -299,13 +348,18 @@ namespace OutlookOpsAssistant
                 bool containsDigit =
                     value.Any(char.IsDigit);
 
-                if (containsLetter && containsDigit)
+                if (!containsLetter ||
+                    !containsDigit ||
+                    value.Length != 7)
                 {
-                    return value;
+                    continue;
+                }
+
+                if (!result.Contains(value))
+                {
+                    result.Add(value);
                 }
             }
-
-            return string.Empty;
         }
 
         private static string FindSite(
@@ -327,6 +381,30 @@ namespace OutlookOpsAssistant
             }
 
             return string.Empty;
+        }
+
+        private static string FindSiteFromVin(
+            string vin)
+        {
+            if (string.IsNullOrWhiteSpace(vin))
+            {
+                return string.Empty;
+            }
+
+            switch (char.ToUpperInvariant(vin[0]))
+            {
+                case 'M':
+                    return "Tiexi";
+
+                case 'S':
+                    return "Dadong";
+
+                case '1':
+                    return "Lydia";
+
+                default:
+                    return string.Empty;
+            }
         }
 
         private static bool ContainsAny(
