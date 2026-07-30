@@ -287,9 +287,6 @@ namespace OutlookOpsAssistant
         private static IList<string> FindVins(
             MailContext context)
         {
-            List<string> result =
-                new List<string>();
-
             IEnumerable<string> priorityTexts =
                 new[]
                 {
@@ -300,21 +297,26 @@ namespace OutlookOpsAssistant
 
             foreach (string text in priorityTexts)
             {
+                List<string> result =
+                    new List<string>();
+
                 AddVinMatches(
                     text,
                     LabeledVinRegex,
                     result);
-            }
 
-            foreach (string text in priorityTexts)
-            {
                 AddVinMatches(
                     text,
                     VinTokenRegex,
                     result);
+
+                if (result.Count > 0)
+                {
+                    return result;
+                }
             }
 
-            return result;
+            return new List<string>();
         }
 
         private static void AddVinMatches(
