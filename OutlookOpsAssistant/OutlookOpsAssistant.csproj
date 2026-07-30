@@ -1,4 +1,4 @@
-﻿<Project ToolsVersion="18.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="18.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <!--
     This section defines project-level properties.
@@ -180,19 +180,22 @@
   </ItemGroup>
   <!--
     This section defines the user source files that are part of the project.
-     
+
     A "Compile" element specifies a source file to compile.
     An "EmbeddedResource" element specifies an .resx file for embedded resources.
-    A "None" element specifies a file that is not to be passed to the compiler (for instance, 
+    A "None" element specifies a file that is not to be passed to the compiler (for instance,
     a text file or XML file).
     The "AppDesigner" element specifies the directory where the application properties files
     can be found.
   -->
   <ItemGroup>
+    <Compile Include="AgentModels.cs" />
     <Compile Include="CaseModels.cs" />
     <Compile Include="CaseRegistry.cs" />
     <Compile Include="InspectorSession.cs" />
     <Compile Include="JsonHelper.cs" />
+    <Compile Include="MailContext.cs" />
+    <Compile Include="MockAgentService.cs" />
     <Compile Include="OpsRibbon.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -202,9 +205,13 @@
     <Compile Include="OpsTaskPaneControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="OpsTaskPaneControl.Analysis.cs">
+      <DependentUpon>OpsTaskPaneControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="OpsTaskPaneControl.Designer.cs">
       <DependentUpon>OpsTaskPaneControl.cs</DependentUpon>
     </Compile>
+    <Compile Include="OutlookMailContextReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
