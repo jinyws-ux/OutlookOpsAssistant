@@ -64,23 +64,6 @@ namespace OutlookOpsAssistant
             taskPane.Visible = true;
         }
 
-        /// <summary>
-        /// 保留原有的选中文字补充能力，后续作为次要入口使用。
-        /// </summary>
-        public void AddFragment(
-            Outlook.MailItem mailItem,
-            string selectedText)
-        {
-            EnsureNotDisposed();
-
-            MailContext context =
-                mailContextReader.Read(mailItem);
-
-            paneControl.LoadMailContext(context);
-            paneControl.AddFragment(selectedText);
-            taskPane.Visible = true;
-        }
-
         private void EnsureNotDisposed()
         {
             if (disposed)
