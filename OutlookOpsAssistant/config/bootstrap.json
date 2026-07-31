@@ -1,0 +1,19 @@
+{
+  "environment": "test",
+  "caseConfigPath": "cases.json",
+  "agent": {
+    "mode": "mock",
+    "classificationEndpoint": "",
+    "extractionEndpoint": "",
+    "timeoutSeconds": 30
+  },
+  "api": {
+    "enabled": false,
+    "baseUrl": "",
+    "timeoutSeconds": 30
+  },
+  "paths": {
+    "cacheDirectory": "%LOCALAPPDATA%\\OutlookOpsAssistant\\cache",
+    "logDirectory": "%LOCALAPPDATA%\\OutlookOpsAssistant\\logs"
+  }
+}
