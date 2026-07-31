@@ -10,14 +10,11 @@ namespace OutlookOpsAssistant
     {
         private Panel analysisPanel;
         private ListBox suggestionListBox;
-        private TextBox latestContentTextBox;
         private Label analysisStatusLabel;
         private Button reanalyzeButton;
         private Button enterSelectedCaseButton;
 
         private TableLayoutPanel mainWorkflowLayout;
-        private int fragmentStartRow = -1;
-        private int fragmentEndRow = -1;
         private int caseTemplateStartRow = -1;
         private int caseTemplateEndRow = -1;
 
@@ -31,11 +28,6 @@ namespace OutlookOpsAssistant
             EnsureAnalysisUi();
         }
 
-        /// <summary>
-        /// 由 InspectorSession 传入当前邮件上下文，
-        /// 并使用 Mock Agent 执行 Case 推荐。
-        /// 用户确认 Case 后，才执行该 Case 的参数提取。
-        /// </summary>
         public void LoadMailContext(
             MailContext context)
         {
@@ -52,10 +44,6 @@ namespace OutlookOpsAssistant
             SetMailInfo(
                 context.Subject,
                 context.SenderAddress);
-
-            latestContentTextBox.Text =
-                context.LatestContent ??
-                string.Empty;
 
             AnalyzeCurrentMail();
         }
@@ -188,29 +176,6 @@ namespace OutlookOpsAssistant
             actionPanel.Controls.Add(
                 analysisStatusLabel);
 
-            Label latestTitleLabel =
-                new Label
-                {
-                    Text = "识别出的最新邮件内容",
-                    AutoSize = true,
-                    Dock = DockStyle.Top,
-                    Margin = new Padding(
-                        0,
-                        10,
-                        0,
-                        3)
-                };
-
-            latestContentTextBox =
-                new TextBox
-                {
-                    Dock = DockStyle.Top,
-                    Height = 85,
-                    Multiline = true,
-                    ReadOnly = true,
-                    ScrollBars = ScrollBars.Vertical
-                };
-
             TableLayoutPanel layout =
                 new TableLayoutPanel
                 {
@@ -228,8 +193,6 @@ namespace OutlookOpsAssistant
             AddAnalysisRow(layout, suggestionTitleLabel);
             AddAnalysisRow(layout, suggestionListBox);
             AddAnalysisRow(layout, actionPanel);
-            AddAnalysisRow(layout, latestTitleLabel);
-            AddAnalysisRow(layout, latestContentTextBox);
 
             analysisPanel.Controls.Add(layout);
 
@@ -251,29 +214,16 @@ namespace OutlookOpsAssistant
                 return;
             }
 
-            int fragmentRow =
-                mainWorkflowLayout.GetRow(
-                    fragmentListBox);
-
-            fragmentStartRow =
-                Math.Max(0, fragmentRow - 1);
-            fragmentEndRow =
-                fragmentRow + 1;
-
             int caseComboRow =
                 mainWorkflowLayout.GetRow(
                     caseComboBox);
 
             caseTemplateStartRow =
                 Math.Max(0, caseComboRow - 1);
+
             caseTemplateEndRow =
                 mainWorkflowLayout.GetRow(
-                    previewTextBox);
-
-            SetRowsVisible(
-                fragmentStartRow,
-                fragmentEndRow,
-                false);
+                    resultDisplayControl);
 
             SetCaseTemplateVisible(false);
         }
@@ -281,20 +231,10 @@ namespace OutlookOpsAssistant
         private void SetCaseTemplateVisible(
             bool visible)
         {
-            SetRowsVisible(
-                caseTemplateStartRow,
-                caseTemplateEndRow,
-                visible);
-        }
-
-        private void SetRowsVisible(
-            int startRow,
-            int endRow,
-            bool visible)
-        {
             if (mainWorkflowLayout == null ||
-                startRow < 0 ||
-                endRow < startRow)
+                caseTemplateStartRow < 0 ||
+                caseTemplateEndRow <
+                    caseTemplateStartRow)
             {
                 return;
             }
@@ -305,8 +245,8 @@ namespace OutlookOpsAssistant
                 int row =
                     mainWorkflowLayout.GetRow(control);
 
-                if (row >= startRow &&
-                    row <= endRow)
+                if (row >= caseTemplateStartRow &&
+                    row <= caseTemplateEndRow)
                 {
                     control.Visible = visible;
                 }
@@ -364,7 +304,7 @@ namespace OutlookOpsAssistant
 
                 analysisStatusLabel.Text =
                     suggestionListBox.Items.Count > 0
-                        ? "分析完成，请先选择一个候选 Case"
+                        ? "分析完成，请选择一个候选 Case"
                         : "没有可用的 Case 配置";
             }
             catch (Exception ex)
@@ -389,15 +329,10 @@ namespace OutlookOpsAssistant
             enterSelectedCaseButton.Enabled =
                 suggestion != null;
 
-            if (suggestion == null)
-            {
-                analysisStatusLabel.Text =
-                    "请选择一个候选 Case";
-                return;
-            }
-
             analysisStatusLabel.Text =
-                suggestion.Reason;
+                suggestion == null
+                    ? "请选择一个候选 Case"
+                    : suggestion.Reason;
         }
 
         private void SuggestionListBox_DoubleClick(
@@ -449,8 +384,6 @@ namespace OutlookOpsAssistant
                 caseComboBox.SelectedItem =
                     selectedCase;
 
-                // 即使前后选择的是同一个 Case，也重新生成表单，
-                // 避免保留上一封邮件的字段值。
                 RenderSelectedCase();
 
                 IDictionary<string, string> extracted =
@@ -460,10 +393,6 @@ namespace OutlookOpsAssistant
 
                 ApplyExtractedParameters(extracted);
                 SetCaseTemplateVisible(true);
-
-                resultLabel.Text =
-                    "Mock Agent：" +
-                    suggestion.Reason;
 
                 analysisStatusLabel.Text =
                     "已进入 " +
