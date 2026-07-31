@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace OutlookOpsAssistant
@@ -42,11 +43,6 @@ namespace OutlookOpsAssistant
         }
     }
 
-    /// <summary>
-    /// 插件只依赖该接口。
-    /// 后续接入 Dify、RAGFlow 或其他 Agent 时，
-    /// 替换实现类即可，不需要修改 Outlook 读取和界面主流程。
-    /// </summary>
     public interface IAgentService
     {
         MailAnalysisResult AnalyzeMail(
@@ -56,5 +52,44 @@ namespace OutlookOpsAssistant
         IDictionary<string, string> ExtractParameters(
             MailContext context,
             CaseDefinition caseDefinition);
+    }
+
+    /// <summary>
+    /// 防止配置为真实 Agent 后仍静默调用 Mock。
+    /// HTTP Agent 接入完成前会明确提示当前模式尚不可用。
+    /// </summary>
+    public sealed class UnavailableAgentService : IAgentService
+    {
+        private readonly string configuredMode;
+
+        public UnavailableAgentService(string configuredMode)
+        {
+            this.configuredMode =
+                string.IsNullOrWhiteSpace(configuredMode)
+                    ? "unknown"
+                    : configuredMode;
+        }
+
+        public MailAnalysisResult AnalyzeMail(
+            MailContext context,
+            IList<CaseDefinition> caseDefinitions)
+        {
+            throw CreateException();
+        }
+
+        public IDictionary<string, string> ExtractParameters(
+            MailContext context,
+            CaseDefinition caseDefinition)
+        {
+            throw CreateException();
+        }
+
+        private InvalidOperationException CreateException()
+        {
+            return new InvalidOperationException(
+                "当前配置的 Agent 模式为 " +
+                configuredMode +
+                "，但此版本尚未接入该模式。请暂时改为 mock。" );
+        }
     }
 }
