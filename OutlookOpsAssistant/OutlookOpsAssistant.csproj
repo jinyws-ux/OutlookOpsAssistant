@@ -190,13 +190,16 @@
   -->
   <ItemGroup>
     <Compile Include="AgentModels.cs" />
+    <Compile Include="CaseApiService.cs" />
     <Compile Include="CaseModels.cs" />
     <Compile Include="CaseRegistry.cs" />
     <Compile Include="ConfigurationModels.cs" />
     <Compile Include="ConfigurationService.cs" />
+    <Compile Include="HelixService.cs" />
     <Compile Include="InspectorSession.cs" />
     <Compile Include="JsonHelper.cs" />
     <Compile Include="MailContext.cs" />
+    <Compile Include="MailExportService.cs" />
     <Compile Include="MockAgentService.cs" />
     <Compile Include="OpsRibbon.cs">
       <SubType>Component</SubType>
@@ -221,6 +224,7 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="TicketService.cs" />
+    <Compile Include="WorkflowTicketService.cs" />
     <Content Include="config\bootstrap.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
