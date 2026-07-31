@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace OutlookOpsAssistant
 {
@@ -47,6 +47,38 @@ namespace OutlookOpsAssistant
                             FieldType = CaseFieldType.MultiLineText,
                             Required = false,
                             DefaultValue = string.Empty
+                        }
+                    },
+
+                    ResultDisplay = new List<CaseResultFieldDefinition>
+                    {
+                        new CaseResultFieldDefinition
+                        {
+                            Label = "工单号",
+                            Path = "TicketId",
+                            DisplayType = CaseResultDisplayType.Text,
+                            Copyable = true
+                        },
+                        new CaseResultFieldDefinition
+                        {
+                            Label = "VIN",
+                            Path = "Data.vin",
+                            DisplayType = CaseResultDisplayType.Text,
+                            Copyable = true
+                        },
+                        new CaseResultFieldDefinition
+                        {
+                            Label = "厂区",
+                            Path = "Data.site",
+                            DisplayType = CaseResultDisplayType.Text,
+                            Copyable = false
+                        },
+                        new CaseResultFieldDefinition
+                        {
+                            Label = "处理说明",
+                            Path = "Message",
+                            DisplayType = CaseResultDisplayType.Status,
+                            Copyable = false
                         }
                     }
                 }
