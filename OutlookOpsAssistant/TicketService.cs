@@ -1,47 +1,13 @@
-using System;
-using System.Collections.Generic;
-
 namespace OutlookOpsAssistant
 {
+    /// <summary>
+    /// 对界面暴露的统一流程入口。
+    /// 具体实现可以串联 Helix、邮件附件和 Case API。
+    /// </summary>
     public interface ITicketService
     {
         TicketCreateResult CreateTicket(
+            CaseDefinition caseDefinition,
             TicketCreateRequest request);
-    }
-
-    public sealed class MockTicketService : ITicketService
-    {
-        public TicketCreateResult CreateTicket(
-            TicketCreateRequest request)
-        {
-            if (request == null)
-            {
-                throw new ArgumentNullException(
-                    nameof(request));
-            }
-
-            string ticketId =
-                "TEST-INC-" +
-                DateTime.Now.ToString(
-                    "yyyyMMddHHmmssfff");
-
-            TicketCreateResult result =
-                new TicketCreateResult
-                {
-                    Success = true,
-                    TicketId = ticketId,
-                    Message = "模拟工单创建成功",
-                    CompletedAt = DateTime.Now
-                };
-
-            foreach (KeyValuePair<string, string> parameter
-                     in request.Parameters)
-            {
-                result.Data[parameter.Key] =
-                    parameter.Value;
-            }
-
-            return result;
-        }
     }
 }
