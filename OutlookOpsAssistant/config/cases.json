@@ -58,14 +58,26 @@
           "copyable": false
         },
         {
+          "label": "邮件附件",
+          "path": "Data.mailAttachmentStatus",
+          "type": "status",
+          "copyable": false
+        },
+        {
+          "label": "业务执行",
+          "path": "Data.caseApiStatus",
+          "type": "status",
+          "copyable": false
+        },
+        {
           "label": "处理说明",
           "path": "Message",
-          "type": "status",
+          "type": "multiline",
           "copyable": false
         }
       ],
       "api": {
-        "enabled": false,
+        "enabled": true,
         "endpoint": "/cases/add-order-file",
         "method": "POST",
         "timeoutSeconds": 30
@@ -130,14 +142,26 @@
           "copyable": false
         },
         {
+          "label": "邮件附件",
+          "path": "Data.mailAttachmentStatus",
+          "type": "status",
+          "copyable": false
+        },
+        {
+          "label": "业务执行",
+          "path": "Data.caseApiStatus",
+          "type": "status",
+          "copyable": false
+        },
+        {
           "label": "处理说明",
           "path": "Message",
-          "type": "status",
+          "type": "multiline",
           "copyable": false
         }
       ],
       "api": {
-        "enabled": false,
+        "enabled": true,
         "endpoint": "/cases/ips-q-battery-query",
         "method": "POST",
         "timeoutSeconds": 30
