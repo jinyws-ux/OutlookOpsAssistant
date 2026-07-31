@@ -215,6 +215,9 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ResultDisplayControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="TicketService.cs" />
     <EmbeddedResource Include="OpsRibbon.resx">
       <DependentUpon>OpsRibbon.cs</DependentUpon>
