@@ -18,6 +18,7 @@
 - `AgentModels.cs`：Agent 接口、候选 Case 和分析结果模型。
 - `MockAgentService.cs`：本地关键词分类和 VIN、厂区提取。
 - `OpsTaskPaneControl.Analysis.cs`：邮件分析、候选 Case 展示和字段预填界面。
+- `ResultDisplayControl.cs`：按 Case 配置渲染不同业务回参。
 - `InspectorSession.cs`：完整邮件分析入口。
 - `OpsRibbon`：主按钮由“读取选中内容”调整为“分析当前邮件”。
 
@@ -34,12 +35,23 @@
 - VIN 提取按最新邮件内容、主题、完整邮件链逐级回退；当前层级识别到 VIN 后，不再混入更早邮件中的 VIN。
 - 未明确写厂区时，可根据 VIN 首位推断 Tiexi、Dadong 或 Lydia。
 
+## 第二轮界面反馈修正
+
+- 不再在主界面铺开“识别出的最新邮件内容”。邮件正文仍保留在 `MailContext` 中供 Agent 使用，但不占用操作者界面。
+- 删除“预览 JSON”和“请求与返回结果”主区域。
+- 主界面只显示处理后的业务结果。
+- 所有 Case 共用固定的成功/失败状态与完成时间。
+- 每个 Case 通过 `ResultDisplay` 配置决定显示哪些回参字段、字段路径、展示类型以及是否可复制。
+- 原始 JSON 仅保留为“查看原始回参”调试入口，默认折叠，并且只显示回参，不显示请求参数。
+- 当前支持 `Text`、`Status`、`MultiLine`、`List`、`Table` 五种结果展示类型；首个 Case 先使用文本和状态类型验证整体机制。
+
 ## 设计原则
 
 - Outlook 插件负责读取邮件、显示结果、参数确认和流程串联。
 - AI/Agent 通过 `IAgentService` 接口隔离，后续替换 Mock 实现时不改 Outlook 主流程。
 - Case 分类和 Case 参数提取是两个独立步骤。
 - 复杂业务执行继续外置为 API。
+- 不统一不同 Case 的业务结果内容，只统一可复用的结果展示组件。
 
 ## 当前限制
 
@@ -47,4 +59,5 @@
 - Mock Agent 的匹配度只是开发阶段排序值，不代表真实概率。
 - 当前仅有 `ADD_ORDER_FILE` 一个正式 Case 配置，因此候选列表暂时只有一项；增加 Case 配置后会自动显示多个候选项。
 - VIN 前缀规则目前仅用于 Mock 测试，后续应迁移到 NAS Case 配置或 Agent 规则中，避免写死在插件核心。
+- `Table` 类型当前先以只读结构化文本方式显示，等出现真实表格型 Case 后再优化成专用表格控件。
 - 尚未在真实 Windows + Outlook + Visual Studio 环境完成编译和运行验证。
