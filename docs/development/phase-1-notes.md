@@ -19,12 +19,12 @@
 - `MockAgentService.cs`：本地关键词分类和 VIN、厂区提取。
 - `OpsTaskPaneControl.Analysis.cs`：邮件分析、候选 Case 展示和字段预填界面。
 - `ResultDisplayControl.cs`：按 Case 配置渲染不同业务回参。
+- `ConfigurationModels.cs`：Bootstrap、环境参数和 Case JSON 模型。
+- `ConfigurationService.cs`：配置查找、校验、本地缓存和保底回退。
 - `InspectorSession.cs`：完整邮件分析入口。
 - `OpsRibbon`：主按钮由“读取选中内容”调整为“分析当前邮件”。
 
 ## 第一轮测试反馈修正
-
-状态：已提交，等待本地编译与 Outlook 运行验证。
 
 - “选择的关键内容”不再显示，也不再作为插件主流程的一部分。
 - 分析完成后不自动进入排名第一的 Case。
@@ -43,21 +43,38 @@
 - 所有 Case 共用固定的成功/失败状态与完成时间。
 - 每个 Case 通过 `ResultDisplay` 配置决定显示哪些回参字段、字段路径、展示类型以及是否可复制。
 - 原始 JSON 仅保留为“查看原始回参”调试入口，默认折叠，并且只显示回参，不显示请求参数。
-- 当前支持 `Text`、`Status`、`MultiLine`、`List`、`Table` 五种结果展示类型；首个 Case 先使用文本和状态类型验证整体机制。
+- 当前支持 `Text`、`Status`、`MultiLine`、`List`、`Table` 五种结果展示类型。
+
+## 第三轮：外部配置层
+
+状态：已提交，等待本地编译与 Outlook 运行验证。
+
+- Case 不再由主流程直接读取写死的 `CaseRegistry`，正常情况下从 `config\cases.json` 加载。
+- 新增本地测试用的第二个 Case：`IPS-Q Battery Query`，用于验证多个候选、不同表单和不同结果字段。
+- `bootstrap.json` 外置环境名称、Case 地址、Agent 模式与地址、API 开关与基础地址、缓存和日志目录。
+- Bootstrap 支持环境变量、ProgramData、LocalAppData 和插件目录四级查找。
+- `caseConfigPath` 支持相对路径、绝对路径、UNC 路径和环境变量。
+- 主 Case 配置读取成功后自动写入本地缓存；NAS 或主配置暂时不可用时自动读取缓存。
+- 主配置和缓存均不可用时，才使用 `CaseRegistry` 中的最小内置保底 Case。
+- 任务窗格新增“重新加载配置”和“配置诊断”，修改 JSON 后不需要重新编译。
+- 配置成未实现的真实 Agent 模式时会明确报错，不会静默切回 Mock。
+- 完整配置说明记录在 `docs/configuration.md`。
 
 ## 设计原则
 
 - Outlook 插件负责读取邮件、显示结果、参数确认和流程串联。
-- AI/Agent 通过 `IAgentService` 接口隔离，后续替换 Mock 实现时不改 Outlook 主流程。
+- AI/Agent 通过 `IAgentService` 接口隔离，后续替换 Mock 实现时不改 Outlook 读取和界面主流程。
 - Case 分类和 Case 参数提取是两个独立步骤。
 - 复杂业务执行继续外置为 API。
 - 不统一不同 Case 的业务结果内容，只统一可复用的结果展示组件。
+- 所有只有进入生产环境后才能确定的地址和开关，原则上不得写死在 DLL 中。
 
 ## 当前限制
 
 - “最新邮件内容”仅使用基础分隔符规则，复杂邮件格式后续需要继续完善。
 - Mock Agent 的匹配度只是开发阶段排序值，不代表真实概率。
-- 当前仅有 `ADD_ORDER_FILE` 一个正式 Case 配置，因此候选列表暂时只有一项；增加 Case 配置后会自动显示多个候选项。
-- VIN 前缀规则目前仅用于 Mock 测试，后续应迁移到 NAS Case 配置或 Agent 规则中，避免写死在插件核心。
+- VIN 前缀规则目前仍用于 Mock 测试，后续应迁移到 Case 配置或 Agent 规则中。
 - `Table` 类型当前先以只读结构化文本方式显示，等出现真实表格型 Case 后再优化成专用表格控件。
-- 尚未在真实 Windows + Outlook + Visual Studio 环境完成编译和运行验证。
+- 外部配置已经预留真实 Agent 和 API 参数，但 HTTP Agent 与通用 API 调用器尚未开发。
+- API Key、密码和生产凭据不得写入普通 JSON，后续使用 Windows 凭据管理器或内部网关。
+- 尚未在真实 Windows + Outlook + Visual Studio 环境完成本轮编译和运行验证。
