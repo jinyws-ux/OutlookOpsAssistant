@@ -33,6 +33,8 @@ namespace OutlookOpsAssistant
 
         public string ExtractionEndpoint { get; set; }
 
+        public string ReplyEndpoint { get; set; }
+
         public int TimeoutSeconds { get; set; }
 
         public AgentConfiguration()
@@ -42,17 +44,56 @@ namespace OutlookOpsAssistant
         }
     }
 
+    /// <summary>
+    /// Case API 与 Helix 都属于外部集成，
+    /// 但二者通过独立服务接口运行。
+    /// </summary>
     public sealed class ApiConfiguration
     {
         public bool Enabled { get; set; }
+
+        public string Mode { get; set; }
 
         public string BaseUrl { get; set; }
 
         public int TimeoutSeconds { get; set; }
 
+        public HelixConfiguration Helix { get; set; }
+
         public ApiConfiguration()
         {
+            Mode = "mock";
             TimeoutSeconds = 30;
+            Helix = new HelixConfiguration();
+        }
+    }
+
+    public sealed class HelixConfiguration
+    {
+        public string Mode { get; set; }
+
+        public string BaseUrl { get; set; }
+
+        public string CreateTicketEndpoint { get; set; }
+
+        public string AttachmentEndpoint { get; set; }
+
+        public int TimeoutSeconds { get; set; }
+
+        public bool AttachCurrentMail { get; set; }
+
+        public string MailExportDirectory { get; set; }
+
+        public bool DeleteExportedMailAfterUpload { get; set; }
+
+        public HelixConfiguration()
+        {
+            Mode = "mock";
+            TimeoutSeconds = 30;
+            AttachCurrentMail = true;
+            MailExportDirectory =
+                "%LOCALAPPDATA%\\OutlookOpsAssistant\\temp";
+            DeleteExportedMailAfterUpload = true;
         }
     }
 
@@ -211,9 +252,22 @@ namespace OutlookOpsAssistant
             text.AppendLine("Agent 模式：" + ValueOrDash(Agent == null ? null : Agent.Mode));
             text.AppendLine("分类地址：" + ValueOrDash(Agent == null ? null : Agent.ClassificationEndpoint));
             text.AppendLine("参数提取地址：" + ValueOrDash(Agent == null ? null : Agent.ExtractionEndpoint));
+            text.AppendLine("回复生成地址：" + ValueOrDash(Agent == null ? null : Agent.ReplyEndpoint));
             text.AppendLine();
-            text.AppendLine("API 开关：" + ((Api != null && Api.Enabled) ? "启用" : "关闭"));
-            text.AppendLine("API 基础地址：" + ValueOrDash(Api == null ? null : Api.BaseUrl));
+            text.AppendLine("Case API 开关：" + ((Api != null && Api.Enabled) ? "启用" : "关闭"));
+            text.AppendLine("Case API 模式：" + ValueOrDash(Api == null ? null : Api.Mode));
+            text.AppendLine("Case API 基础地址：" + ValueOrDash(Api == null ? null : Api.BaseUrl));
+
+            HelixConfiguration helix =
+                Api == null ? null : Api.Helix;
+
+            text.AppendLine("Helix 模式：" + ValueOrDash(helix == null ? null : helix.Mode));
+            text.AppendLine("Helix 基础地址：" + ValueOrDash(helix == null ? null : helix.BaseUrl));
+            text.AppendLine("Helix 开单地址：" + ValueOrDash(helix == null ? null : helix.CreateTicketEndpoint));
+            text.AppendLine("Helix 附件地址：" + ValueOrDash(helix == null ? null : helix.AttachmentEndpoint));
+            text.AppendLine("上传当前邮件：" + ((helix != null && helix.AttachCurrentMail) ? "是" : "否"));
+            text.AppendLine("邮件导出目录：" + ValueOrDash(helix == null ? null : helix.MailExportDirectory));
+            text.AppendLine();
             text.AppendLine("缓存目录：" + ValueOrDash(CacheDirectory));
             text.AppendLine("日志目录：" + ValueOrDash(LogDirectory));
 
