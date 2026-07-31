@@ -50,24 +50,52 @@ namespace OutlookOpsAssistant
         public bool Copyable { get; set; }
     }
 
+    public sealed class CaseApiDefinition
+    {
+        public bool Enabled { get; set; }
+
+        public string Endpoint { get; set; }
+
+        public string Method { get; set; }
+
+        public int TimeoutSeconds { get; set; }
+
+        public CaseApiDefinition()
+        {
+            Method = "POST";
+            TimeoutSeconds = 30;
+        }
+    }
+
     public sealed class CaseDefinition
     {
+        public bool Enabled { get; set; }
+
         public string Code { get; set; }
 
         public string Name { get; set; }
+
+        public string Description { get; set; }
 
         public string SummaryTemplate { get; set; }
 
         public bool AutomationEnabled { get; set; }
 
+        public List<string> MatchKeywords { get; set; }
+
         public List<CaseFieldDefinition> Fields { get; set; }
 
         public List<CaseResultFieldDefinition> ResultDisplay { get; set; }
 
+        public CaseApiDefinition Api { get; set; }
+
         public CaseDefinition()
         {
+            Enabled = true;
+            MatchKeywords = new List<string>();
             Fields = new List<CaseFieldDefinition>();
             ResultDisplay = new List<CaseResultFieldDefinition>();
+            Api = new CaseApiDefinition();
         }
 
         public override string ToString()
