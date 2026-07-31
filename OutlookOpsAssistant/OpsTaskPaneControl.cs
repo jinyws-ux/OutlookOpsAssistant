@@ -19,8 +19,13 @@ namespace OutlookOpsAssistant
         private readonly Dictionary<string, Control>
             fieldControls;
 
-        private readonly IList<CaseDefinition>
-            caseDefinitions;
+        private readonly ConfigurationService
+            configurationService;
+
+        private IList<CaseDefinition> caseDefinitions;
+
+        private RuntimeConfigurationSnapshot
+            runtimeConfiguration;
 
         private readonly ITicketService ticketService;
 
@@ -34,8 +39,14 @@ namespace OutlookOpsAssistant
             fieldControls =
                 new Dictionary<string, Control>();
 
+            configurationService =
+                new ConfigurationService();
+
+            runtimeConfiguration =
+                configurationService.Load();
+
             caseDefinitions =
-                CaseRegistry.GetAll();
+                runtimeConfiguration.Cases;
 
             ticketService =
                 new MockTicketService();
@@ -178,17 +189,7 @@ namespace OutlookOpsAssistant
 
             Controls.Add(mainLayout);
 
-            caseComboBox.DataSource =
-                caseDefinitions;
-
-            caseComboBox.DisplayMember =
-                "Name";
-
-            if (caseDefinitions.Count > 0)
-            {
-                caseComboBox.SelectedIndex = 0;
-                RenderSelectedCase();
-            }
+            BindCaseDefinitions();
         }
 
         public void SetMailInfo(
@@ -210,6 +211,32 @@ namespace OutlookOpsAssistant
                 string.IsNullOrWhiteSpace(sender)
                     ? "-"
                     : sender;
+        }
+
+        private void BindCaseDefinitions()
+        {
+            caseComboBox.DataSource = null;
+            caseComboBox.DisplayMember = "Name";
+
+            List<CaseDefinition> bindingItems =
+                new List<CaseDefinition>(
+                    caseDefinitions ??
+                    new List<CaseDefinition>());
+
+            caseComboBox.DataSource = bindingItems;
+
+            if (bindingItems.Count > 0)
+            {
+                caseComboBox.SelectedIndex = 0;
+                RenderSelectedCase();
+            }
+            else
+            {
+                caseFieldsPanel.Controls.Clear();
+                fieldControls.Clear();
+                resultDisplayControl.ShowError(
+                    "没有可用的 Case 配置。" );
+            }
         }
 
         private static Label CreateSectionLabel(
@@ -466,14 +493,12 @@ namespace OutlookOpsAssistant
             if (selectedCase == null)
             {
                 throw new InvalidOperationException(
-                    "请选择一个 Case。");
+                    "请选择一个 Case。" );
             }
 
             Dictionary<string, string>
                 parameterValues =
-                    new Dictionary<
-                        string,
-                        string>();
+                    new Dictionary<string, string>();
 
             foreach (
                 CaseFieldDefinition field
