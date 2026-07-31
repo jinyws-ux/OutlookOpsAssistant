@@ -5,12 +5,24 @@
     "mode": "mock",
     "classificationEndpoint": "",
     "extractionEndpoint": "",
+    "replyEndpoint": "",
     "timeoutSeconds": 30
   },
   "api": {
-    "enabled": false,
+    "enabled": true,
+    "mode": "mock",
     "baseUrl": "",
-    "timeoutSeconds": 30
+    "timeoutSeconds": 30,
+    "helix": {
+      "mode": "mock",
+      "baseUrl": "",
+      "createTicketEndpoint": "",
+      "attachmentEndpoint": "",
+      "timeoutSeconds": 30,
+      "attachCurrentMail": true,
+      "mailExportDirectory": "%LOCALAPPDATA%\\OutlookOpsAssistant\\temp",
+      "deleteExportedMailAfterUpload": false
+    }
   },
   "paths": {
     "cacheDirectory": "%LOCALAPPDATA%\\OutlookOpsAssistant\\cache",
