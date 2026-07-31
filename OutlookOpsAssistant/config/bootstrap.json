@@ -1,0 +1,31 @@
+{
+  "environment": "test",
+  "caseConfigPath": "cases.json",
+  "agent": {
+    "mode": "mock",
+    "classificationEndpoint": "",
+    "extractionEndpoint": "",
+    "replyEndpoint": "",
+    "timeoutSeconds": 30
+  },
+  "api": {
+    "enabled": true,
+    "mode": "mock",
+    "baseUrl": "",
+    "timeoutSeconds": 30,
+    "helix": {
+      "mode": "mock",
+      "baseUrl": "",
+      "createTicketEndpoint": "",
+      "attachmentEndpoint": "",
+      "timeoutSeconds": 30,
+      "attachCurrentMail": true,
+      "mailExportDirectory": "%LOCALAPPDATA%\\OutlookOpsAssistant\\temp",
+      "deleteExportedMailAfterUpload": false
+    }
+  },
+  "paths": {
+    "cacheDirectory": "%LOCALAPPDATA%\\OutlookOpsAssistant\\cache",
+    "logDirectory": "%LOCALAPPDATA%\\OutlookOpsAssistant\\logs"
+  }
+}

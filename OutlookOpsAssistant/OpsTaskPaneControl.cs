@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace OutlookOpsAssistant
@@ -11,42 +10,56 @@ namespace OutlookOpsAssistant
         private readonly Label subjectValueLabel;
         private readonly Label senderValueLabel;
 
-        private readonly ListBox fragmentListBox;
-
         private readonly ComboBox caseComboBox;
         private readonly TableLayoutPanel caseFieldsPanel;
+        private readonly ResultDisplayControl resultDisplayControl;
 
-        private readonly TextBox previewTextBox;
-        private readonly Label resultLabel;
-
-        private readonly Button previewButton;
         private readonly Button createTicketButton;
 
         private readonly Dictionary<string, Control>
             fieldControls;
 
-        private readonly IList<CaseDefinition>
-            caseDefinitions;
+        private readonly ConfigurationService
+            configurationService;
 
-        private readonly ITicketService ticketService;
+        private readonly IMailExporter mailExporter;
+
+        private IList<CaseDefinition> caseDefinitions;
+
+        private RuntimeConfigurationSnapshot
+            runtimeConfiguration;
+
+        private ITicketService ticketService;
 
         private string currentMailSubject;
         private string currentSender;
 
         public OpsTaskPaneControl()
+            : this(null)
+        {
+        }
+
+        public OpsTaskPaneControl(
+            IMailExporter mailExporter)
         {
             InitializeComponent();
+
+            this.mailExporter = mailExporter;
 
             fieldControls =
                 new Dictionary<string, Control>();
 
-            caseDefinitions =
-                CaseRegistry.GetAll();
+            configurationService =
+                new ConfigurationService();
 
-            // 当前使用模拟服务。
-            // 后续接真实接口时替换成 HttpTicketService。
+            runtimeConfiguration =
+                configurationService.Load();
+
+            caseDefinitions =
+                runtimeConfiguration.Cases;
+
             ticketService =
-                new MockTicketService();
+                CreateConfiguredTicketService();
 
             Dock = DockStyle.Fill;
             AutoScroll = true;
@@ -80,54 +93,6 @@ namespace OutlookOpsAssistant
 
             senderValueLabel =
                 CreateValueLabel();
-
-            Label fragmentTitleLabel =
-                CreateSectionLabel(
-                    "已选择的关键内容");
-
-            fragmentListBox =
-                new ListBox
-                {
-                    Dock = DockStyle.Top,
-                    Height = 110,
-                    HorizontalScrollbar = true
-                };
-
-            Button deleteFragmentButton =
-                new Button
-                {
-                    Text = "删除选中项",
-                    AutoSize = true
-                };
-
-            deleteFragmentButton.Click +=
-                DeleteFragmentButton_Click;
-
-            Button clearFragmentsButton =
-                new Button
-                {
-                    Text = "清空",
-                    AutoSize = true
-                };
-
-            clearFragmentsButton.Click +=
-                ClearFragmentsButton_Click;
-
-            FlowLayoutPanel fragmentButtonPanel =
-                new FlowLayoutPanel
-                {
-                    Dock = DockStyle.Top,
-                    AutoSize = true,
-                    FlowDirection =
-                        FlowDirection.LeftToRight,
-                    WrapContents = false
-                };
-
-            fragmentButtonPanel.Controls.Add(
-                deleteFragmentButton);
-
-            fragmentButtonPanel.Controls.Add(
-                clearFragmentsButton);
 
             Label caseTitleLabel =
                 CreateSectionLabel(
@@ -171,22 +136,13 @@ namespace OutlookOpsAssistant
                     SizeType.Percent,
                     100));
 
-            previewButton =
-                new Button
-                {
-                    Text = "预览 JSON",
-                    AutoSize = true
-                };
-
-            previewButton.Click +=
-                PreviewButton_Click;
-
             createTicketButton =
                 new Button
                 {
-                    Text = "模拟创建工单",
                     AutoSize = true
                 };
+
+            UpdateCreateTicketButtonText();
 
             createTicketButton.Click +=
                 CreateTicketButton_Click;
@@ -207,50 +163,21 @@ namespace OutlookOpsAssistant
                 };
 
             actionButtonPanel.Controls.Add(
-                previewButton);
-
-            actionButtonPanel.Controls.Add(
                 createTicketButton);
 
-            resultLabel =
-                new Label
-                {
-                    Text = "尚未创建工单",
-                    AutoSize = true,
-                    Dock = DockStyle.Top,
-                    Padding = new Padding(
-                        0,
-                        4,
-                        0,
-                        8)
-                };
-
-            Label previewTitleLabel =
+            Label resultTitleLabel =
                 CreateSectionLabel(
-                    "请求与返回结果");
+                    "处理结果");
 
-            previewTextBox =
-                new TextBox
-                {
-                    Dock = DockStyle.Top,
-                    Height = 230,
-                    Multiline = true,
-                    ScrollBars =
-                        ScrollBars.Both,
-                    ReadOnly = true,
-                    WordWrap = false,
-                    Font = new Font(
-                        "Consolas",
-                        9F)
-                };
+            resultDisplayControl =
+                new ResultDisplayControl();
 
             TableLayoutPanel mainLayout =
                 new TableLayoutPanel
                 {
                     Dock = DockStyle.Top,
                     AutoSize = true,
-                    ColumnCount = 1,
-                    RowCount = 16
+                    ColumnCount = 1
                 };
 
             mainLayout.ColumnStyles.Add(
@@ -258,83 +185,22 @@ namespace OutlookOpsAssistant
                     SizeType.Percent,
                     100));
 
-            AddRow(
-                mainLayout,
-                titleLabel);
-
-            AddRow(
-                mainLayout,
-                subjectTitleLabel);
-
-            AddRow(
-                mainLayout,
-                subjectValueLabel);
-
-            AddRow(
-                mainLayout,
-                senderTitleLabel);
-
-            AddRow(
-                mainLayout,
-                senderValueLabel);
-
-            AddRow(
-                mainLayout,
-                fragmentTitleLabel);
-
-            AddRow(
-                mainLayout,
-                fragmentListBox);
-
-            AddRow(
-                mainLayout,
-                fragmentButtonPanel);
-
-            AddRow(
-                mainLayout,
-                caseTitleLabel);
-
-            AddRow(
-                mainLayout,
-                caseComboBox);
-
-            AddRow(
-                mainLayout,
-                parameterTitleLabel);
-
-            AddRow(
-                mainLayout,
-                caseFieldsPanel);
-
-            AddRow(
-                mainLayout,
-                actionButtonPanel);
-
-            AddRow(
-                mainLayout,
-                resultLabel);
-
-            AddRow(
-                mainLayout,
-                previewTitleLabel);
-
-            AddRow(
-                mainLayout,
-                previewTextBox);
+            AddRow(mainLayout, titleLabel);
+            AddRow(mainLayout, subjectTitleLabel);
+            AddRow(mainLayout, subjectValueLabel);
+            AddRow(mainLayout, senderTitleLabel);
+            AddRow(mainLayout, senderValueLabel);
+            AddRow(mainLayout, caseTitleLabel);
+            AddRow(mainLayout, caseComboBox);
+            AddRow(mainLayout, parameterTitleLabel);
+            AddRow(mainLayout, caseFieldsPanel);
+            AddRow(mainLayout, actionButtonPanel);
+            AddRow(mainLayout, resultTitleLabel);
+            AddRow(mainLayout, resultDisplayControl);
 
             Controls.Add(mainLayout);
 
-            caseComboBox.DataSource =
-                caseDefinitions;
-
-            caseComboBox.DisplayMember =
-                "Name";
-
-            if (caseDefinitions.Count > 0)
-            {
-                caseComboBox.SelectedIndex = 0;
-                RenderSelectedCase();
-            }
+            BindCaseDefinitions();
         }
 
         public void SetMailInfo(
@@ -358,40 +224,104 @@ namespace OutlookOpsAssistant
                     : sender;
         }
 
-        public bool AddFragment(
-            string fragment)
+        private ITicketService CreateConfiguredTicketService()
         {
-            string normalized =
-                (fragment ?? string.Empty)
-                .Trim();
+            ApiConfiguration apiConfiguration =
+                runtimeConfiguration == null ||
+                runtimeConfiguration.Api == null
+                    ? new ApiConfiguration()
+                    : runtimeConfiguration.Api;
 
-            if (string.IsNullOrWhiteSpace(
-                    normalized))
+            HelixConfiguration helixConfiguration =
+                apiConfiguration.Helix ??
+                new HelixConfiguration();
+
+            string helixMode =
+                string.IsNullOrWhiteSpace(
+                    helixConfiguration.Mode)
+                    ? "mock"
+                    : helixConfiguration.Mode;
+
+            IHelixService helixService =
+                string.Equals(
+                    helixMode,
+                    "mock",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? (IHelixService)new MockHelixService()
+                    : new UnavailableHelixService(
+                        helixMode);
+
+            string caseApiMode =
+                string.IsNullOrWhiteSpace(
+                    apiConfiguration.Mode)
+                    ? "mock"
+                    : apiConfiguration.Mode;
+
+            ICaseApiService caseApiService =
+                string.Equals(
+                    caseApiMode,
+                    "mock",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? (ICaseApiService)new MockCaseApiService()
+                    : new UnavailableCaseApiService(
+                        caseApiMode);
+
+            return new WorkflowTicketService(
+                helixService,
+                caseApiService,
+                mailExporter,
+                apiConfiguration);
+        }
+
+        private void UpdateCreateTicketButtonText()
+        {
+            if (createTicketButton == null)
             {
-                return false;
+                return;
             }
 
-            bool alreadyExists =
-                fragmentListBox.Items
-                    .Cast<object>()
-                    .Any(item =>
-                        string.Equals(
-                            Convert.ToString(item),
-                            normalized,
-                            StringComparison.Ordinal));
+            string helixMode =
+                runtimeConfiguration == null ||
+                runtimeConfiguration.Api == null ||
+                runtimeConfiguration.Api.Helix == null ||
+                string.IsNullOrWhiteSpace(
+                    runtimeConfiguration.Api.Helix.Mode)
+                    ? "mock"
+                    : runtimeConfiguration.Api.Helix.Mode;
 
-            if (alreadyExists)
+            createTicketButton.Text =
+                string.Equals(
+                    helixMode,
+                    "mock",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? "模拟创建工单"
+                    : "创建工单";
+        }
+
+        private void BindCaseDefinitions()
+        {
+            caseComboBox.DataSource = null;
+            caseComboBox.DisplayMember = "Name";
+
+            List<CaseDefinition> bindingItems =
+                new List<CaseDefinition>(
+                    caseDefinitions ??
+                    new List<CaseDefinition>());
+
+            caseComboBox.DataSource = bindingItems;
+
+            if (bindingItems.Count > 0)
             {
-                return false;
+                caseComboBox.SelectedIndex = 0;
+                RenderSelectedCase();
             }
-
-            fragmentListBox.Items.Add(
-                normalized);
-
-            fragmentListBox.SelectedIndex =
-                fragmentListBox.Items.Count - 1;
-
-            return true;
+            else
+            {
+                caseFieldsPanel.Controls.Clear();
+                fieldControls.Clear();
+                resultDisplayControl.ShowError(
+                    "没有可用的 Case 配置。" );
+            }
         }
 
         private static Label CreateSectionLabel(
@@ -422,7 +352,7 @@ namespace OutlookOpsAssistant
                 Dock = DockStyle.Top,
                 MaximumSize =
                     new Size(
-                        360,
+                        380,
                         0),
                 Margin = new Padding(
                     0,
@@ -437,8 +367,9 @@ namespace OutlookOpsAssistant
             Control control)
         {
             int rowIndex =
-                panel.Controls.Count;
+                panel.RowCount;
 
+            panel.RowCount++;
             panel.RowStyles.Add(
                 new RowStyle(
                     SizeType.AutoSize));
@@ -468,6 +399,7 @@ namespace OutlookOpsAssistant
             {
                 caseFieldsPanel.Controls.Clear();
                 caseFieldsPanel.RowStyles.Clear();
+                caseFieldsPanel.RowCount = 0;
                 fieldControls.Clear();
 
                 if (selectedCase == null)
@@ -475,12 +407,18 @@ namespace OutlookOpsAssistant
                     return;
                 }
 
-                int rowIndex = 0;
-
                 foreach (
                     CaseFieldDefinition field
                     in selectedCase.Fields)
                 {
+                    int rowIndex =
+                        caseFieldsPanel.RowCount;
+
+                    caseFieldsPanel.RowCount++;
+                    caseFieldsPanel.RowStyles.Add(
+                        new RowStyle(
+                            SizeType.AutoSize));
+
                     Label fieldLabel =
                         new Label
                         {
@@ -490,8 +428,7 @@ namespace OutlookOpsAssistant
                                     ? " *"
                                     : string.Empty),
                             AutoSize = true,
-                            Anchor =
-                                AnchorStyles.Left,
+                            Anchor = AnchorStyles.Left,
                             Margin = new Padding(
                                 0,
                                 6,
@@ -501,10 +438,6 @@ namespace OutlookOpsAssistant
 
                     Control inputControl =
                         CreateFieldControl(field);
-
-                    caseFieldsPanel.RowStyles.Add(
-                        new RowStyle(
-                            SizeType.AutoSize));
 
                     caseFieldsPanel.Controls.Add(
                         fieldLabel,
@@ -518,22 +451,16 @@ namespace OutlookOpsAssistant
 
                     fieldControls[field.Key] =
                         inputControl;
-
-                    rowIndex++;
                 }
 
-                caseFieldsPanel.RowCount =
-                    rowIndex;
-
-                resultLabel.Text =
+                resultDisplayControl.ShowWaiting(
                     selectedCase.AutomationEnabled
-                        ? "该 Case 支持自动化处理"
-                        : "该 Case 仅支持开单";
+                        ? "等待执行"
+                        : "等待创建工单");
             }
             finally
             {
-                caseFieldsPanel.ResumeLayout(
-                    true);
+                caseFieldsPanel.ResumeLayout(true);
             }
         }
 
@@ -606,89 +533,40 @@ namespace OutlookOpsAssistant
             return textBox;
         }
 
-        private void PreviewButton_Click(
-            object sender,
-            EventArgs e)
-        {
-            try
-            {
-                TicketCreateRequest request =
-                    BuildRequest();
-
-                previewTextBox.Text =
-                    JsonHelper.ToPrettyJson(
-                        request);
-
-                resultLabel.Text =
-                    "参数校验通过，尚未创建工单";
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    ex.Message,
-                    "参数检查失败",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
-        }
-
         private void CreateTicketButton_Click(
             object sender,
             EventArgs e)
         {
-            createTicketButton.Enabled =
-                false;
+            createTicketButton.Enabled = false;
+            resultDisplayControl.ShowWaiting(
+                "正在创建工单...");
 
             try
             {
+                CaseDefinition selectedCase =
+                    caseComboBox.SelectedItem
+                        as CaseDefinition;
+
                 TicketCreateRequest request =
                     BuildRequest();
 
                 TicketCreateResult result =
                     ticketService.CreateTicket(
+                        selectedCase,
                         request);
 
-                previewTextBox.Text =
-                    JsonHelper.ToPrettyJson(
-                        new
-                        {
-                            Request = request,
-                            Response = result
-                        });
-
-                if (result.Success)
-                {
-                    resultLabel.Text =
-                        "模拟工单号：" +
-                        result.TicketId;
-
-                    MessageBox.Show(
-                        result.Message +
-                        "\n\n工单号：" +
-                        result.TicketId,
-                        "创建成功",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                }
-                else
-                {
-                    resultLabel.Text =
-                        "创建失败：" +
-                        result.Message;
-                }
+                resultDisplayControl.ShowResult(
+                    selectedCase,
+                    result);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    ex.Message,
-                    "创建工单失败",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                resultDisplayControl.ShowError(
+                    ex.Message);
             }
             finally
             {
-                createTicketButton.Enabled =
-                    true;
+                createTicketButton.Enabled = true;
             }
         }
 
@@ -701,14 +579,12 @@ namespace OutlookOpsAssistant
             if (selectedCase == null)
             {
                 throw new InvalidOperationException(
-                    "请选择一个 Case。");
+                    "请选择一个 Case。" );
             }
 
             Dictionary<string, string>
                 parameterValues =
-                    new Dictionary<
-                        string,
-                        string>();
+                    new Dictionary<string, string>();
 
             foreach (
                 CaseFieldDefinition field
@@ -727,8 +603,7 @@ namespace OutlookOpsAssistant
                     GetControlValue(control);
 
                 if (field.Required &&
-                    string.IsNullOrWhiteSpace(
-                        value))
+                    string.IsNullOrWhiteSpace(value))
                 {
                     throw new InvalidOperationException(
                         "请填写必填字段：" +
@@ -739,53 +614,24 @@ namespace OutlookOpsAssistant
                     value;
             }
 
-            List<string> fragments =
-                fragmentListBox.Items
-                    .Cast<object>()
-                    .Select(item =>
-                        Convert.ToString(item) ??
-                        string.Empty)
-                    .Where(item =>
-                        !string.IsNullOrWhiteSpace(
-                            item))
-                    .ToList();
-
             string description =
-                fragments.Count == 0
+                currentMailContext == null
                     ? string.Empty
-                    : string.Join(
-                        Environment.NewLine +
-                        Environment.NewLine,
-                        fragments);
+                    : currentMailContext.LatestContent ??
+                      string.Empty;
 
             return new TicketCreateRequest
             {
-                CaseCode =
-                    selectedCase.Code,
-
-                CaseName =
-                    selectedCase.Name,
-
-                MailSubject =
-                    currentMailSubject,
-
-                Sender =
-                    currentSender,
-
+                CaseCode = selectedCase.Code,
+                CaseName = selectedCase.Name,
+                MailSubject = currentMailSubject,
+                Sender = currentSender,
                 TicketSummary =
                     selectedCase.SummaryTemplate,
-
-                Description =
-                    description,
-
+                Description = description,
                 AutomationEnabled =
                     selectedCase.AutomationEnabled,
-
-                Parameters =
-                    parameterValues,
-
-                SelectedFragments =
-                    fragments
+                Parameters = parameterValues
             };
         }
 
@@ -819,43 +665,6 @@ namespace OutlookOpsAssistant
                 control.Text ??
                 string.Empty)
                 .Trim();
-        }
-
-        private void DeleteFragmentButton_Click(
-            object sender,
-            EventArgs e)
-        {
-            int selectedIndex =
-                fragmentListBox.SelectedIndex;
-
-            if (selectedIndex >= 0)
-            {
-                fragmentListBox.Items.RemoveAt(
-                    selectedIndex);
-            }
-        }
-
-        private void ClearFragmentsButton_Click(
-            object sender,
-            EventArgs e)
-        {
-            if (fragmentListBox.Items.Count == 0)
-            {
-                return;
-            }
-
-            DialogResult result =
-                MessageBox.Show(
-                    "确定要清空全部关键内容吗？",
-                    "Outlook 运维助手",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-            if (result ==
-                DialogResult.Yes)
-            {
-                fragmentListBox.Items.Clear();
-            }
         }
     }
 }

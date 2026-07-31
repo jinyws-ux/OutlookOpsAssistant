@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "enabled": true,
+      "code": "ADD_ORDER_FILE",
+      "name": "ADD ORDER FILE",
+      "description": "为指定 VIN 添加 Order File。",
+      "summaryTemplate": "Tiexi_APDM_Add_Order_File",
+      "automationEnabled": true,
+      "matchKeywords": [
+        "ADD ORDER FILE",
+        "ORDER FILE",
+        "订单文件",
+        "加订单文件"
+      ],
+      "fields": [
+        {
+          "key": "site",
+          "label": "厂区",
+          "type": "select",
+          "required": true,
+          "defaultValue": "Tiexi",
+          "options": ["Tiexi", "Dadong", "Lydia"]
+        },
+        {
+          "key": "vin",
+          "label": "VIN",
+          "type": "text",
+          "required": true,
+          "defaultValue": ""
+        },
+        {
+          "key": "remark",
+          "label": "补充说明",
+          "type": "multiline",
+          "required": false,
+          "defaultValue": ""
+        }
+      ],
+      "resultDisplay": [
+        {
+          "label": "工单号",
+          "path": "TicketId",
+          "type": "text",
+          "copyable": true
+        },
+        {
+          "label": "VIN",
+          "path": "Data.vin",
+          "type": "text",
+          "copyable": true
+        },
+        {
+          "label": "厂区",
+          "path": "Data.site",
+          "type": "text",
+          "copyable": false
+        },
+        {
+          "label": "邮件附件",
+          "path": "Data.mailAttachmentStatus",
+          "type": "status",
+          "copyable": false
+        },
+        {
+          "label": "业务执行",
+          "path": "Data.caseApiStatus",
+          "type": "status",
+          "copyable": false
+        },
+        {
+          "label": "处理说明",
+          "path": "Message",
+          "type": "multiline",
+          "copyable": false
+        }
+      ],
+      "api": {
+        "enabled": true,
+        "endpoint": "/cases/add-order-file",
+        "method": "POST",
+        "timeoutSeconds": 30
+      }
+    },
+    {
+      "enabled": true,
+      "code": "IPS_Q_BATTERY_QUERY",
+      "name": "IPS-Q Battery Query / 电池",
+      "description": "查询车辆在 IPS-Q 中的电池相关信息，用于验证多 Case 配置。",
+      "summaryTemplate": "IPS_Q_Battery_Query",
+      "automationEnabled": true,
+      "matchKeywords": [
+        "IPS-Q",
+        "BATTERY",
+        "电池",
+        "电池信息",
+        "电压"
+      ],
+      "fields": [
+        {
+          "key": "site",
+          "label": "厂区",
+          "type": "select",
+          "required": true,
+          "defaultValue": "Tiexi",
+          "options": ["Tiexi", "Dadong", "Lydia"]
+        },
+        {
+          "key": "vin",
+          "label": "VIN",
+          "type": "text",
+          "required": true,
+          "defaultValue": ""
+        },
+        {
+          "key": "queryType",
+          "label": "查询内容",
+          "type": "select",
+          "required": true,
+          "defaultValue": "Full",
+          "options": ["Full", "Status", "Voltage"]
+        }
+      ],
+      "resultDisplay": [
+        {
+          "label": "工单号",
+          "path": "TicketId",
+          "type": "text",
+          "copyable": true
+        },
+        {
+          "label": "VIN",
+          "path": "Data.vin",
+          "type": "text",
+          "copyable": true
+        },
+        {
+          "label": "查询内容",
+          "path": "Data.queryType",
+          "type": "text",
+          "copyable": false
+        },
+        {
+          "label": "邮件附件",
+          "path": "Data.mailAttachmentStatus",
+          "type": "status",
+          "copyable": false
+        },
+        {
+          "label": "业务执行",
+          "path": "Data.caseApiStatus",
+          "type": "status",
+          "copyable": false
+        },
+        {
+          "label": "处理说明",
+          "path": "Message",
+          "type": "multiline",
+          "copyable": false
+        }
+      ],
+      "api": {
+        "enabled": true,
+        "endpoint": "/cases/ips-q-battery-query",
+        "method": "POST",
+        "timeoutSeconds": 30
+      }
+    }
+  ]
+}
