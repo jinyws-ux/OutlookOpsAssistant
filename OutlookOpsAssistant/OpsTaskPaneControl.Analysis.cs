@@ -541,6 +541,11 @@ namespace OutlookOpsAssistant
                     runtimeConfiguration.Cases;
 
                 BindCaseDefinitions();
+
+                ticketService =
+                    CreateConfiguredTicketService();
+                UpdateCreateTicketButtonText();
+
                 agentService =
                     CreateConfiguredAgentService();
                 UpdateAnalysisTitle();
