@@ -11,6 +11,7 @@ namespace OutlookOpsAssistant
         private readonly Outlook.InspectorEvents_Event inspectorEvents;
         private readonly OpsTaskPaneControl paneControl;
         private readonly OutlookMailContextReader mailContextReader;
+        private readonly OutlookMsgExporter mailExporter;
 
         private CustomTaskPane taskPane;
         private bool disposed;
@@ -26,8 +27,12 @@ namespace OutlookOpsAssistant
             mailContextReader =
                 new OutlookMailContextReader();
 
+            mailExporter =
+                new OutlookMsgExporter(inspector);
+
             paneControl =
-                new OpsTaskPaneControl();
+                new OpsTaskPaneControl(
+                    mailExporter);
 
             taskPane =
                 Globals.ThisAddIn.CustomTaskPanes.Add(
