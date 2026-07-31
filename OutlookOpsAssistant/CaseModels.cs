@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 
 namespace OutlookOpsAssistant
 {
@@ -7,6 +8,15 @@ namespace OutlookOpsAssistant
         Text,
         MultiLineText,
         Select
+    }
+
+    public enum CaseResultDisplayType
+    {
+        Text,
+        Status,
+        MultiLine,
+        List,
+        Table
     }
 
     public sealed class CaseFieldDefinition
@@ -29,6 +39,17 @@ namespace OutlookOpsAssistant
         }
     }
 
+    public sealed class CaseResultFieldDefinition
+    {
+        public string Label { get; set; }
+
+        public string Path { get; set; }
+
+        public CaseResultDisplayType DisplayType { get; set; }
+
+        public bool Copyable { get; set; }
+    }
+
     public sealed class CaseDefinition
     {
         public string Code { get; set; }
@@ -41,9 +62,12 @@ namespace OutlookOpsAssistant
 
         public List<CaseFieldDefinition> Fields { get; set; }
 
+        public List<CaseResultFieldDefinition> ResultDisplay { get; set; }
+
         public CaseDefinition()
         {
             Fields = new List<CaseFieldDefinition>();
+            ResultDisplay = new List<CaseResultFieldDefinition>();
         }
 
         public override string ToString()
@@ -70,12 +94,9 @@ namespace OutlookOpsAssistant
 
         public Dictionary<string, string> Parameters { get; set; }
 
-        public List<string> SelectedFragments { get; set; }
-
         public TicketCreateRequest()
         {
             Parameters = new Dictionary<string, string>();
-            SelectedFragments = new List<string>();
         }
     }
 
@@ -86,5 +107,14 @@ namespace OutlookOpsAssistant
         public string TicketId { get; set; }
 
         public string Message { get; set; }
+
+        public DateTime CompletedAt { get; set; }
+
+        public Dictionary<string, object> Data { get; set; }
+
+        public TicketCreateResult()
+        {
+            Data = new Dictionary<string, object>();
+        }
     }
 }
