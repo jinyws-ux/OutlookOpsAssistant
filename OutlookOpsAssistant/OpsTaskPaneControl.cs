@@ -22,19 +22,29 @@ namespace OutlookOpsAssistant
         private readonly ConfigurationService
             configurationService;
 
+        private readonly IMailExporter mailExporter;
+
         private IList<CaseDefinition> caseDefinitions;
 
         private RuntimeConfigurationSnapshot
             runtimeConfiguration;
 
-        private readonly ITicketService ticketService;
+        private ITicketService ticketService;
 
         private string currentMailSubject;
         private string currentSender;
 
         public OpsTaskPaneControl()
+            : this(null)
+        {
+        }
+
+        public OpsTaskPaneControl(
+            IMailExporter mailExporter)
         {
             InitializeComponent();
+
+            this.mailExporter = mailExporter;
 
             fieldControls =
                 new Dictionary<string, Control>();
@@ -49,7 +59,7 @@ namespace OutlookOpsAssistant
                 runtimeConfiguration.Cases;
 
             ticketService =
-                new MockTicketService();
+                CreateConfiguredTicketService();
 
             Dock = DockStyle.Fill;
             AutoScroll = true;
@@ -129,9 +139,10 @@ namespace OutlookOpsAssistant
             createTicketButton =
                 new Button
                 {
-                    Text = "模拟创建工单",
                     AutoSize = true
                 };
+
+            UpdateCreateTicketButtonText();
 
             createTicketButton.Click +=
                 CreateTicketButton_Click;
@@ -211,6 +222,80 @@ namespace OutlookOpsAssistant
                 string.IsNullOrWhiteSpace(sender)
                     ? "-"
                     : sender;
+        }
+
+        private ITicketService CreateConfiguredTicketService()
+        {
+            ApiConfiguration apiConfiguration =
+                runtimeConfiguration == null ||
+                runtimeConfiguration.Api == null
+                    ? new ApiConfiguration()
+                    : runtimeConfiguration.Api;
+
+            HelixConfiguration helixConfiguration =
+                apiConfiguration.Helix ??
+                new HelixConfiguration();
+
+            string helixMode =
+                string.IsNullOrWhiteSpace(
+                    helixConfiguration.Mode)
+                    ? "mock"
+                    : helixConfiguration.Mode;
+
+            IHelixService helixService =
+                string.Equals(
+                    helixMode,
+                    "mock",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? (IHelixService)new MockHelixService()
+                    : new UnavailableHelixService(
+                        helixMode);
+
+            string caseApiMode =
+                string.IsNullOrWhiteSpace(
+                    apiConfiguration.Mode)
+                    ? "mock"
+                    : apiConfiguration.Mode;
+
+            ICaseApiService caseApiService =
+                string.Equals(
+                    caseApiMode,
+                    "mock",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? (ICaseApiService)new MockCaseApiService()
+                    : new UnavailableCaseApiService(
+                        caseApiMode);
+
+            return new WorkflowTicketService(
+                helixService,
+                caseApiService,
+                mailExporter,
+                apiConfiguration);
+        }
+
+        private void UpdateCreateTicketButtonText()
+        {
+            if (createTicketButton == null)
+            {
+                return;
+            }
+
+            string helixMode =
+                runtimeConfiguration == null ||
+                runtimeConfiguration.Api == null ||
+                runtimeConfiguration.Api.Helix == null ||
+                string.IsNullOrWhiteSpace(
+                    runtimeConfiguration.Api.Helix.Mode)
+                    ? "mock"
+                    : runtimeConfiguration.Api.Helix.Mode;
+
+            createTicketButton.Text =
+                string.Equals(
+                    helixMode,
+                    "mock",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? "模拟创建工单"
+                    : "创建工单";
         }
 
         private void BindCaseDefinitions()
@@ -458,16 +543,17 @@ namespace OutlookOpsAssistant
 
             try
             {
+                CaseDefinition selectedCase =
+                    caseComboBox.SelectedItem
+                        as CaseDefinition;
+
                 TicketCreateRequest request =
                     BuildRequest();
 
                 TicketCreateResult result =
                     ticketService.CreateTicket(
+                        selectedCase,
                         request);
-
-                CaseDefinition selectedCase =
-                    caseComboBox.SelectedItem
-                        as CaseDefinition;
 
                 resultDisplayControl.ShowResult(
                     selectedCase,
