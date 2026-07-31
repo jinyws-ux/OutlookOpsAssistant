@@ -74,7 +74,7 @@
     {
       "enabled": true,
       "code": "IPS_Q_BATTERY_QUERY",
-      "name": "IPS-Q Battery Query",
+      "name": "IPS-Q Battery Query / 电池",
       "description": "查询车辆在 IPS-Q 中的电池相关信息，用于验证多 Case 配置。",
       "summaryTemplate": "IPS_Q_Battery_Query",
       "automationEnabled": true,
