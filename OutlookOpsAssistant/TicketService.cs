@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace OutlookOpsAssistant
 {
@@ -24,12 +24,32 @@ namespace OutlookOpsAssistant
                 DateTime.Now.ToString(
                     "yyyyMMddHHmmssfff");
 
-            return new TicketCreateResult
+            TicketCreateResult result =
+                new TicketCreateResult
+                {
+                    Success = true,
+                    TicketId = ticketId,
+                    Message = "模拟工单创建成功",
+                    CompletedAt = DateTime.Now
+                };
+
+            string vin;
+            if (request.Parameters.TryGetValue(
+                    "vin",
+                    out vin))
             {
-                Success = true,
-                TicketId = ticketId,
-                Message = "模拟工单创建成功"
-            };
+                result.Data["vin"] = vin;
+            }
+
+            string site;
+            if (request.Parameters.TryGetValue(
+                    "site",
+                    out site))
+            {
+                result.Data["site"] = site;
+            }
+
+            return result;
         }
     }
 }
