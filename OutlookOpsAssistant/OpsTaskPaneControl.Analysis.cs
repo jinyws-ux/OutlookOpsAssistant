@@ -9,10 +9,13 @@ namespace OutlookOpsAssistant
     public partial class OpsTaskPaneControl
     {
         private Panel analysisPanel;
+        private Label analysisTitleLabel;
         private ListBox suggestionListBox;
         private Label analysisStatusLabel;
         private Button reanalyzeButton;
         private Button enterSelectedCaseButton;
+        private Button reloadConfigurationButton;
+        private Button configurationDiagnosticsButton;
 
         private TableLayoutPanel mainWorkflowLayout;
         private int caseTemplateStartRow = -1;
@@ -55,8 +58,7 @@ namespace OutlookOpsAssistant
                 return;
             }
 
-            agentService =
-                new MockAgentService();
+            agentService = CreateConfiguredAgentService();
 
             analysisPanel =
                 new Panel
@@ -75,10 +77,9 @@ namespace OutlookOpsAssistant
                         8)
                 };
 
-            Label titleLabel =
+            analysisTitleLabel =
                 new Label
                 {
-                    Text = "邮件分析（Mock Agent）",
                     AutoSize = true,
                     Dock = DockStyle.Top,
                     Font = new Font(
@@ -90,6 +91,8 @@ namespace OutlookOpsAssistant
                         0,
                         4)
                 };
+
+            UpdateAnalysisTitle();
 
             Label suggestionTitleLabel =
                 new Label
@@ -132,12 +135,32 @@ namespace OutlookOpsAssistant
             reanalyzeButton =
                 new Button
                 {
-                    Text = "重新模拟分析",
+                    Text = "重新分析",
                     AutoSize = true
                 };
 
             reanalyzeButton.Click +=
                 ReanalyzeButton_Click;
+
+            reloadConfigurationButton =
+                new Button
+                {
+                    Text = "重新加载配置",
+                    AutoSize = true
+                };
+
+            reloadConfigurationButton.Click +=
+                ReloadConfigurationButton_Click;
+
+            configurationDiagnosticsButton =
+                new Button
+                {
+                    Text = "配置诊断",
+                    AutoSize = true
+                };
+
+            configurationDiagnosticsButton.Click +=
+                ConfigurationDiagnosticsButton_Click;
 
             analysisStatusLabel =
                 new Label
@@ -174,6 +197,10 @@ namespace OutlookOpsAssistant
             actionPanel.Controls.Add(
                 reanalyzeButton);
             actionPanel.Controls.Add(
+                reloadConfigurationButton);
+            actionPanel.Controls.Add(
+                configurationDiagnosticsButton);
+            actionPanel.Controls.Add(
                 analysisStatusLabel);
 
             TableLayoutPanel layout =
@@ -189,7 +216,7 @@ namespace OutlookOpsAssistant
                     SizeType.Percent,
                     100));
 
-            AddAnalysisRow(layout, titleLabel);
+            AddAnalysisRow(layout, analysisTitleLabel);
             AddAnalysisRow(layout, suggestionTitleLabel);
             AddAnalysisRow(layout, suggestionListBox);
             AddAnalysisRow(layout, actionPanel);
@@ -202,6 +229,44 @@ namespace OutlookOpsAssistant
                 0);
 
             ConfigureWorkflowRows();
+        }
+
+        private IAgentService CreateConfiguredAgentService()
+        {
+            string mode =
+                runtimeConfiguration == null ||
+                runtimeConfiguration.Agent == null
+                    ? "mock"
+                    : runtimeConfiguration.Agent.Mode;
+
+            if (string.Equals(
+                    mode,
+                    "mock",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return new MockAgentService();
+            }
+
+            return new UnavailableAgentService(mode);
+        }
+
+        private void UpdateAnalysisTitle()
+        {
+            if (analysisTitleLabel == null)
+            {
+                return;
+            }
+
+            string mode =
+                runtimeConfiguration == null ||
+                runtimeConfiguration.Agent == null ||
+                string.IsNullOrWhiteSpace(
+                    runtimeConfiguration.Agent.Mode)
+                    ? "mock"
+                    : runtimeConfiguration.Agent.Mode;
+
+            analysisTitleLabel.Text =
+                "邮件分析（" + mode + "）";
         }
 
         private void ConfigureWorkflowRows()
@@ -286,7 +351,7 @@ namespace OutlookOpsAssistant
 
             reanalyzeButton.Enabled = false;
             analysisStatusLabel.Text =
-                "正在使用 Mock Agent 分析...";
+                "正在分析当前邮件...";
 
             try
             {
@@ -459,6 +524,63 @@ namespace OutlookOpsAssistant
             EventArgs e)
         {
             AnalyzeCurrentMail();
+        }
+
+        private void ReloadConfigurationButton_Click(
+            object sender,
+            EventArgs e)
+        {
+            reloadConfigurationButton.Enabled = false;
+
+            try
+            {
+                runtimeConfiguration =
+                    configurationService.Load();
+
+                caseDefinitions =
+                    runtimeConfiguration.Cases;
+
+                BindCaseDefinitions();
+                agentService =
+                    CreateConfiguredAgentService();
+                UpdateAnalysisTitle();
+                SetCaseTemplateVisible(false);
+
+                analysisStatusLabel.Text =
+                    "配置已重新加载，共 " +
+                    caseDefinitions.Count +
+                    " 个 Case";
+
+                if (currentMailContext != null)
+                {
+                    AnalyzeCurrentMail();
+                }
+            }
+            catch (Exception ex)
+            {
+                analysisStatusLabel.Text =
+                    "配置重载失败：" + ex.Message;
+            }
+            finally
+            {
+                reloadConfigurationButton.Enabled = true;
+            }
+        }
+
+        private void ConfigurationDiagnosticsButton_Click(
+            object sender,
+            EventArgs e)
+        {
+            string message =
+                runtimeConfiguration == null
+                    ? "尚未加载运行配置。"
+                    : runtimeConfiguration.BuildDiagnosticText();
+
+            MessageBox.Show(
+                message,
+                "Outlook 运维助手 - 配置诊断",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         }
     }
 }
