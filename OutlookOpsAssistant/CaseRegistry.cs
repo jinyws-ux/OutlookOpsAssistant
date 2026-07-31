@@ -2,6 +2,10 @@ using System.Collections.Generic;
 
 namespace OutlookOpsAssistant
 {
+    /// <summary>
+    /// 仅在外部 Case 配置和本地缓存都不可用时启用。
+    /// 正常运行时 Case 应从外部 JSON 加载。
+    /// </summary>
     public static class CaseRegistry
     {
         private static readonly List<CaseDefinition> Cases =
@@ -9,11 +13,19 @@ namespace OutlookOpsAssistant
             {
                 new CaseDefinition
                 {
+                    Enabled = true,
                     Code = "ADD_ORDER_FILE",
                     Name = "ADD ORDER FILE",
+                    Description = "为指定 VIN 添加 Order File。",
                     SummaryTemplate = "Tiexi_APDM_Add_Order_File",
                     AutomationEnabled = true,
-
+                    MatchKeywords = new List<string>
+                    {
+                        "ADD ORDER FILE",
+                        "ORDER FILE",
+                        "订单文件",
+                        "加订单文件"
+                    },
                     Fields = new List<CaseFieldDefinition>
                     {
                         new CaseFieldDefinition
@@ -30,7 +42,6 @@ namespace OutlookOpsAssistant
                                 "Lydia"
                             }
                         },
-
                         new CaseFieldDefinition
                         {
                             Key = "vin",
@@ -39,7 +50,6 @@ namespace OutlookOpsAssistant
                             Required = true,
                             DefaultValue = string.Empty
                         },
-
                         new CaseFieldDefinition
                         {
                             Key = "remark",
@@ -49,7 +59,6 @@ namespace OutlookOpsAssistant
                             DefaultValue = string.Empty
                         }
                     },
-
                     ResultDisplay = new List<CaseResultFieldDefinition>
                     {
                         new CaseResultFieldDefinition
@@ -80,6 +89,12 @@ namespace OutlookOpsAssistant
                             DisplayType = CaseResultDisplayType.Status,
                             Copyable = false
                         }
+                    },
+                    Api = new CaseApiDefinition
+                    {
+                        Enabled = false,
+                        Method = "POST",
+                        TimeoutSeconds = 30
                     }
                 }
             };
