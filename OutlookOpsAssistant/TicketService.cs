@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OutlookOpsAssistant
 {
@@ -33,20 +34,11 @@ namespace OutlookOpsAssistant
                     CompletedAt = DateTime.Now
                 };
 
-            string vin;
-            if (request.Parameters.TryGetValue(
-                    "vin",
-                    out vin))
+            foreach (KeyValuePair<string, string> parameter
+                     in request.Parameters)
             {
-                result.Data["vin"] = vin;
-            }
-
-            string site;
-            if (request.Parameters.TryGetValue(
-                    "site",
-                    out site))
-            {
-                result.Data["site"] = site;
+                result.Data[parameter.Key] =
+                    parameter.Value;
             }
 
             return result;
